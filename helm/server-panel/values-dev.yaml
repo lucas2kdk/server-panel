@@ -27,3 +27,6 @@ resources:
 
 ingress:
   enabled: false
+
+databaseWaiter:
+  intervalSeconds: 1

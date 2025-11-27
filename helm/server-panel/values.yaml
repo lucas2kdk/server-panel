@@ -5,7 +5,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/lucas2kdk/server-panel
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "master-1afafe0"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -96,6 +96,14 @@ config:
   flaskEnv: "production"
   kubernetesNamespace: "game-servers"
   inCluster: "true"
+
+# Optional init container that waits for PostgreSQL to accept connections
+databaseWaiter:
+  enabled: true
+  image: postgres:15-alpine
+  pullPolicy: IfNotPresent
+  port: 5432
+  intervalSeconds: 2
 
 # RBAC configuration
 rbac:

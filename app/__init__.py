@@ -63,6 +63,10 @@ def create_app(config_name='default'):
 
     # Create tables
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception as e:
+            # Tables may already exist, which is fine
+            app.logger.info(f"Database tables already exist or error during creation: {e}")
 
     return app

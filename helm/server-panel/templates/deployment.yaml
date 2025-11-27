@@ -27,6 +27,26 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "server-panel.serviceAccountName" . }}
+      {{- if and .Values.postgresql.enabled .Values.databaseWaiter.enabled }}
+      initContainers:
+      - name: wait-for-postgres
+        image: "{{ .Values.databaseWaiter.image }}"
+        imagePullPolicy: {{ .Values.databaseWaiter.pullPolicy }}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            until pg_isready -h {{ include "server-panel.postgresql.fullname" . }} -p {{ .Values.databaseWaiter.port }} -U {{ .Values.postgresql.auth.username }}; do
+              echo "Waiting for PostgreSQL...";
+              sleep {{ .Values.databaseWaiter.intervalSeconds }};
+            done
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "server-panel.fullname" . }}
+              key: postgres-password
+      {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:

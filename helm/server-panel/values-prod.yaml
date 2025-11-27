@@ -63,6 +63,9 @@ monitoring:
   serviceMonitor:
     enabled: true
 
+databaseWaiter:
+  intervalSeconds: 3
+
 affinity:
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:

@@ -44,7 +44,7 @@ def list_files(server_id):
         return jsonify({'error': 'Invalid path'}), 400
 
     try:
-        output = k8s.list_files(server.pod_name, path)
+        output = k8s.list_files(server.pod_name, path, server.namespace)
         files_list = parse_ls_output(output)
         return jsonify({'files': files_list, 'path': path})
 
@@ -72,7 +72,7 @@ def read_file(server_id):
         return jsonify({'error': 'Invalid path'}), 400
 
     try:
-        content = k8s.read_file(server.pod_name, filepath)
+        content = k8s.read_file(server.pod_name, filepath, server.namespace)
         return jsonify({'content': content, 'path': filepath})
 
     except Exception as e:
@@ -102,7 +102,7 @@ def write_file(server_id):
         return jsonify({'error': 'Invalid path'}), 400
 
     try:
-        k8s.write_file(server.pod_name, filepath, content)
+        k8s.write_file(server.pod_name, filepath, content, server.namespace)
         return jsonify({'status': 'success', 'message': 'File saved'})
 
     except Exception as e:

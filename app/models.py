@@ -26,9 +26,20 @@ class User(UserMixin, db.Model):
     max_ram_gb = db.Column(db.Integer, default=16)
     max_servers = db.Column(db.Integer, default=5)
 
+    # Kubernetes namespace for this user
+    k8s_namespace = db.Column(db.String(63))  # K8s namespace max length
+
     # Relationships
     servers = db.relationship('Server', backref='owner', lazy='dynamic',
                             cascade='all, delete-orphan')
+
+    def get_namespace(self) -> str:
+        """Get or generate Kubernetes namespace for this user."""
+        if not self.k8s_namespace:
+            # Generate namespace: user-{id}
+            self.k8s_namespace = f"user-{self.id}"
+            db.session.commit()
+        return self.k8s_namespace
 
     def set_password(self, password: str) -> None:
         """Hash and set the user's password."""
@@ -94,6 +105,7 @@ class Server(db.Model):
     disk_gb = db.Column(db.Integer, nullable=False)
 
     # Kubernetes identifiers
+    namespace = db.Column(db.String(63))  # K8s namespace
     pod_name = db.Column(db.String(255))
     pvc_name = db.Column(db.String(255))
     service_name = db.Column(db.String(255))

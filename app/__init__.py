@@ -3,10 +3,12 @@ Flask application factory and initialization.
 """
 from flask import Flask, render_template
 from flask_login import LoginManager
+from flask_migrate import Migrate
 from app.config import config
 from app.models import db, User
 
 login_manager = LoginManager()
+migrate = Migrate()
 
 
 @login_manager.user_loader
@@ -22,6 +24,7 @@ def create_app(config_name='default'):
 
     # Initialize extensions
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Please log in to access this page.'
@@ -61,12 +64,18 @@ def create_app(config_name='default'):
         db.session.rollback()
         return render_template('errors/500.html'), 500
 
-    # Create tables
-    with app.app_context():
-        try:
-            db.create_all()
-        except Exception as e:
-            # Tables may already exist, which is fine
-            app.logger.info(f"Database tables already exist or error during creation: {e}")
+    # Flask CLI commands for database migrations
+    @app.cli.command('db-upgrade')
+    def db_upgrade():
+        """Apply database migrations."""
+        from flask_migrate import upgrade
+        upgrade()
+        print("✓ Database migrations applied successfully!")
+
+    @app.cli.command('db-init')
+    def db_init():
+        """Initialize database (create all tables)."""
+        db.create_all()
+        print("✓ Database initialized!")
 
     return app

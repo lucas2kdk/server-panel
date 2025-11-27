@@ -25,7 +25,7 @@ def view(server_id):
 
     # Get recent logs
     try:
-        logs = k8s.get_server_logs(server.pod_name, tail_lines=100) if server.pod_name else "Server not running."
+        logs = k8s.get_server_logs(server.pod_name, server.namespace, tail_lines=100) if server.pod_name and server.namespace else "Server not running."
     except Exception as e:
         logger.error(f"Error fetching logs for server {server_id}: {e}")
         logs = f"Error fetching logs: {str(e)}"
@@ -44,7 +44,7 @@ def logs(server_id):
         return {'error': 'Unauthorized'}, 403
 
     try:
-        logs = k8s.get_server_logs(server.pod_name, tail_lines=100) if server.pod_name else "Server not running."
+        logs = k8s.get_server_logs(server.pod_name, server.namespace, tail_lines=100) if server.pod_name and server.namespace else "Server not running."
         return {'logs': logs}
     except Exception as e:
         logger.error(f"Error fetching logs for server {server_id}: {e}")

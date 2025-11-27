@@ -22,9 +22,9 @@ def dashboard():
 
     # Update status from Kubernetes
     for server in user_servers:
-        if server.pod_name:
+        if server.pod_name and server.namespace:
             try:
-                status = k8s.get_server_status(server.pod_name).lower()
+                status = k8s.get_server_status(server.pod_name, server.namespace).lower()
                 server.status = status
             except Exception as e:
                 logger.error(f"Error updating status for server {server.id}: {e}")
@@ -77,6 +77,9 @@ def create():
             # Generate Kubernetes name
             k8s_name = Server.generate_k8s_name(current_user.id, name)
 
+            # Get user's namespace
+            user_namespace = current_user.get_namespace()
+
             # Create database record
             server = Server(
                 name=name,
@@ -86,6 +89,7 @@ def create():
                 cpu_cores=resources['cpu_cores'],
                 ram_mb=resources['ram_mb'],
                 disk_gb=resources['disk_gb'],
+                namespace=user_namespace,
                 status='creating'
             )
             db.session.add(server)
@@ -99,12 +103,13 @@ def create():
                     'cpu_cores': resources['cpu_cores'],
                     'ram_mb': resources['ram_mb'],
                     'disk_gb': resources['disk_gb']
-                })
+                }, namespace=user_namespace)
 
                 # Update database with K8s info
                 server.pod_name = k8s_resources['pod_name']
                 server.pvc_name = k8s_resources['pvc_name']
                 server.service_name = k8s_resources['service_name']
+                server.namespace = k8s_resources['namespace']
                 server.status = 'starting'
                 db.session.commit()
 
@@ -140,9 +145,9 @@ def detail(server_id):
         return redirect(url_for('servers.dashboard'))
 
     # Update status
-    if server.pod_name:
+    if server.pod_name and server.namespace:
         try:
-            status = k8s.get_server_status(server.pod_name).lower()
+            status = k8s.get_server_status(server.pod_name, server.namespace).lower()
             server.status = status
             db.session.commit()
         except Exception as e:
@@ -164,10 +169,10 @@ def start(server_id):
     try:
         # Extract server name from pod_name (remove -0 suffix)
         server_name = server.pod_name.rsplit('-', 1)[0] if server.pod_name else None
-        if not server_name:
+        if not server_name or not server.namespace:
             return jsonify({'error': 'Invalid server configuration'}), 400
 
-        k8s.start_server(server_name)
+        k8s.start_server(server_name, server.namespace)
         server.status = 'starting'
         db.session.commit()
 
@@ -191,10 +196,10 @@ def stop(server_id):
     try:
         # Extract server name from pod_name
         server_name = server.pod_name.rsplit('-', 1)[0] if server.pod_name else None
-        if not server_name:
+        if not server_name or not server.namespace:
             return jsonify({'error': 'Invalid server configuration'}), 400
 
-        k8s.stop_server(server_name)
+        k8s.stop_server(server_name, server.namespace)
         server.status = 'stopping'
         db.session.commit()
 
@@ -217,12 +222,12 @@ def restart(server_id):
 
     try:
         server_name = server.pod_name.rsplit('-', 1)[0] if server.pod_name else None
-        if not server_name:
+        if not server_name or not server.namespace:
             return jsonify({'error': 'Invalid server configuration'}), 400
 
         # Stop then start
-        k8s.stop_server(server_name)
-        k8s.start_server(server_name)
+        k8s.stop_server(server_name, server.namespace)
+        k8s.start_server(server_name, server.namespace)
         server.status = 'starting'
         db.session.commit()
 
@@ -247,9 +252,9 @@ def delete(server_id):
         server_name = server.pod_name.rsplit('-', 1)[0] if server.pod_name else None
 
         # Delete from Kubernetes
-        if server_name:
+        if server_name and server.namespace:
             try:
-                k8s.delete_server(server_name)
+                k8s.delete_server(server_name, server.namespace)
             except Exception as e:
                 logger.error(f"Error deleting Kubernetes resources: {e}")
                 # Continue with database deletion even if K8s deletion fails

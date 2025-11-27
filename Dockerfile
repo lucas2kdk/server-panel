@@ -34,6 +34,9 @@ COPY --from=builder /usr/local /usr/local
 # Copy application code
 COPY app/ ./app/
 COPY run.py .
+COPY migrations/ ./migrations/
+COPY migrate_db.py .
+COPY run_migration.sh .
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \

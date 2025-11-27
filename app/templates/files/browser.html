@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}File Browser - {{ server.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto" x-data="fileBrowser()">
+    <div class="mb-6">
+        <a href="{{ url_for('servers.detail', server_id=server.id) }}" class="text-blue-600 hover:text-blue-700">
+            &larr; Back to Server Details
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">File Browser</h2>
+        <p class="text-gray-600 mb-6">{{ server.name }}</p>
+
+        <!-- Current Path -->
+        <div class="mb-4">
+            <div class="flex items-center space-x-2">
+                <span class="text-gray-600 font-semibold">Current Path:</span>
+                <code class="bg-gray-100 px-3 py-1 rounded" x-text="currentPath"></code>
+                <button @click="loadFiles()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition text-sm">
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Files Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-100 border-b">
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Size</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Modified</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Loading State -->
+                    <template x-if="loading">
+                        <tr>
+                            <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                                Loading files...
+                            </td>
+                        </tr>
+                    </template>
+
+                    <!-- Files List -->
+                    <template x-if="!loading && files.length > 0">
+                        <template x-for="file in files" :key="file.name">
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="px-4 py-3">
+                                    <span class="mr-2" x-text="file.is_dir ? '📁' : '📄'"></span>
+                                    <span x-text="file.name" :class="file.is_dir ? 'font-semibold text-blue-600 cursor-pointer' : ''" @click="file.is_dir ? navigateToDir(file.name) : null"></span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-600" x-text="formatSize(file.size)"></td>
+                                <td class="px-4 py-3 text-gray-600" x-text="file.modified"></td>
+                                <td class="px-4 py-3">
+                                    <button @click="viewFile(file.name)" x-show="!file.is_dir" class="text-blue-600 hover:text-blue-700 text-sm mr-3">
+                                        View
+                                    </button>
+                                    <button @click="editFile(file.name)" x-show="!file.is_dir" class="text-green-600 hover:text-green-700 text-sm">
+                                        Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </template>
+
+                    <!-- Empty State -->
+                    <template x-if="!loading && files.length === 0">
+                        <tr>
+                            <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                                No files found in this directory.
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- File Editor Modal (placeholder) -->
+        <div x-show="showEditor" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="showEditor = false">
+            <div class="bg-white rounded-lg shadow-lg p-8 max-w-4xl w-full mx-4" @click.stop>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Edit File</h3>
+                <p class="text-gray-600 mb-4" x-text="'File: ' + editingFile"></p>
+                <textarea x-model="fileContent" class="w-full h-96 px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm" placeholder="File content..."></textarea>
+                <div class="flex space-x-3 mt-4">
+                    <button @click="saveFile()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded transition">
+                        Save
+                    </button>
+                    <button @click="showEditor = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded transition">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function fileBrowser() {
+    return {
+        currentPath: '/data',
+        files: [],
+        loading: false,
+        showEditor: false,
+        editingFile: '',
+        fileContent: '',
+
+        init() {
+            this.loadFiles();
+        },
+
+        loadFiles() {
+            this.loading = true;
+            fetch(`/files/{{ server.id }}/list?path=${encodeURIComponent(this.currentPath)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.files) {
+                        this.files = data.files;
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown error'));
+                    }
+                    this.loading = false;
+                })
+                .catch(error => {
+                    alert('Error: ' + error);
+                    this.loading = false;
+                });
+        },
+
+        navigateToDir(dirname) {
+            this.currentPath = this.currentPath + '/' + dirname;
+            this.loadFiles();
+        },
+
+        viewFile(filename) {
+            const filepath = this.currentPath + '/' + filename;
+            fetch(`/files/{{ server.id }}/read?path=${encodeURIComponent(filepath)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.content !== undefined) {
+                        this.editingFile = filename;
+                        this.fileContent = data.content;
+                        this.showEditor = true;
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error);
+                });
+        },
+
+        editFile(filename) {
+            this.viewFile(filename);
+        },
+
+        saveFile() {
+            const filepath = this.currentPath + '/' + this.editingFile;
+            fetch(`/files/{{ server.id }}/write`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    path: filepath,
+                    content: this.fileContent
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('File saved successfully!');
+                    this.showEditor = false;
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        },
+
+        formatSize(bytes) {
+            if (bytes === 0) return '-';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+    }
+}
+</script>
+{% endblock %}

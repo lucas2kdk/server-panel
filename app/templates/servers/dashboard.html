@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Server Panel{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-3xl font-bold text-gray-800">Server Dashboard</h2>
+        <a href="{{ url_for('servers.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+            Create Server
+        </a>
+    </div>
+
+    <!-- Resource Usage -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Resource Usage</h3>
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- CPU Usage -->
+            <div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-700 font-semibold">CPU Cores</span>
+                    <span class="text-gray-600">{{ usage.cpu_used }} / {{ usage.cpu_max }}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div class="bg-blue-600 h-4 rounded-full" style="width: {{ usage.cpu_percent }}%"></div>
+                </div>
+            </div>
+
+            <!-- RAM Usage -->
+            <div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-700 font-semibold">RAM</span>
+                    <span class="text-gray-600">{{ (usage.ram_used_mb / 1024) | round(1) }} / {{ (usage.ram_max_mb / 1024) | round(1) }} GB</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div class="bg-green-600 h-4 rounded-full" style="width: {{ usage.ram_percent }}%"></div>
+                </div>
+            </div>
+
+            <!-- Server Count -->
+            <div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-700 font-semibold">Servers</span>
+                    <span class="text-gray-600">{{ usage.servers_used }} / {{ usage.servers_max }}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div class="bg-purple-600 h-4 rounded-full" style="width: {{ (usage.servers_used / usage.servers_max * 100) if usage.servers_max > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Servers List -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% if servers %}
+            {% for server in servers %}
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">{{ server.name }}</h3>
+                    <span class="px-3 py-1 rounded-full text-sm font-semibold
+                        {% if server.status == 'running' %}bg-green-100 text-green-800
+                        {% elif server.status == 'starting' %}bg-yellow-100 text-yellow-800
+                        {% elif server.status == 'stopped' %}bg-gray-100 text-gray-800
+                        {% elif server.status == 'error' %}bg-red-100 text-red-800
+                        {% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ server.status | capitalize }}
+                    </span>
+                </div>
+
+                <div class="mb-4 text-sm text-gray-600">
+                    <p><strong>Type:</strong> {{ server.server_type | capitalize }} {{ server.server_version }}</p>
+                    <p><strong>CPU:</strong> {{ server.cpu_cores }} cores</p>
+                    <p><strong>RAM:</strong> {{ (server.ram_mb / 1024) | round(1) }} GB</p>
+                    <p><strong>Disk:</strong> {{ server.disk_gb }} GB</p>
+                </div>
+
+                <div class="flex space-x-2">
+                    <a href="{{ url_for('servers.detail', server_id=server.id) }}" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 rounded transition">
+                        Manage
+                    </a>
+                    {% if server.status == 'stopped' %}
+                    <button onclick="controlServer({{ server.id }}, 'start')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded transition">
+                        Start
+                    </button>
+                    {% elif server.status == 'running' %}
+                    <button onclick="controlServer({{ server.id }}, 'stop')" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded transition">
+                        Stop
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-span-full bg-white rounded-lg shadow p-12 text-center">
+                <p class="text-gray-600 mb-4">You don't have any servers yet.</p>
+                <a href="{{ url_for('servers.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition inline-block">
+                    Create Your First Server
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function controlServer(serverId, action) {
+    if (confirm(`Are you sure you want to ${action} this server?`)) {
+        fetch(`/servers/${serverId}/${action}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

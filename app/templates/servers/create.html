@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Create Server - Server Panel{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Create New Server</h2>
+
+        <form method="POST" action="{{ url_for('servers.create') }}">
+            <!-- Server Name -->
+            <div class="mb-6">
+                <label for="name" class="block text-gray-700 font-semibold mb-2">Server Name</label>
+                <input type="text" id="name" name="name" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="My Awesome Server">
+                <p class="text-sm text-gray-500 mt-1">Choose a unique name for your server.</p>
+            </div>
+
+            <!-- Server Type -->
+            <div class="mb-6">
+                <label for="type" class="block text-gray-700 font-semibold mb-2">Server Type</label>
+                <select id="type" name="type" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="vanilla">Vanilla</option>
+                    <option value="paper" selected>Paper</option>
+                    <option value="spigot">Spigot</option>
+                    <option value="forge">Forge</option>
+                    <option value="fabric">Fabric</option>
+                </select>
+                <p class="text-sm text-gray-500 mt-1">Select the type of Minecraft server.</p>
+            </div>
+
+            <!-- Server Version -->
+            <div class="mb-6">
+                <label for="version" class="block text-gray-700 font-semibold mb-2">Minecraft Version</label>
+                <input type="text" id="version" name="version" value="1.20.1" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="1.20.1">
+                <p class="text-sm text-gray-500 mt-1">Enter the Minecraft version (e.g., 1.20.1).</p>
+            </div>
+
+            <!-- Resource Plan -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-semibold mb-3">Resource Plan</label>
+                <div class="space-y-3">
+                    {% for plan_name, plan_resources in plans.items() %}
+                    <div class="border border-gray-300 rounded-lg p-4 hover:border-blue-500 cursor-pointer transition">
+                        <label class="flex items-start cursor-pointer">
+                            <input type="radio" name="plan" value="{{ plan_name }}"
+                                   {% if plan_name == 'small' %}checked{% endif %}
+                                   class="mt-1 mr-3">
+                            <div class="flex-1">
+                                <div class="font-semibold text-gray-800 mb-1">
+                                    {{ plan_name | capitalize }}
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    {{ plan_resources.cpu_cores }} CPU, {{ (plan_resources.ram_mb / 1024) | round(1) }} GB RAM, {{ plan_resources.disk_gb }} GB Disk
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex space-x-4">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition">
+                    Create Server
+                </button>
+                <a href="{{ url_for('servers.dashboard') }}" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 rounded-lg text-center transition">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

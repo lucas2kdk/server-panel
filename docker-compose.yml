@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: server-panel-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: serverpanel
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: server-panel-web
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/serverpanel
+      SECRET_KEY: dev-secret-key-change-in-production
+      FLASK_ENV: development
+      K8S_IN_CLUSTER: "false"
+      K8S_NAMESPACE: game-servers
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+      - ./run.py:/app/run.py
+      - ~/.kube/config:/root/.kube/config:ro
+    command: python run.py
+
+volumes:
+  postgres_data:

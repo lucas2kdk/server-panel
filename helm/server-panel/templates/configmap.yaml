@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "server-panel.fullname" . }}
+  labels:
+    {{- include "server-panel.labels" . | nindent 4 }}
+data:
+  flask-env: {{ .Values.config.flaskEnv | quote }}
+  kubernetes-namespace: {{ .Values.config.kubernetesNamespace | quote }}
+  in-cluster: {{ .Values.config.inCluster | quote }}

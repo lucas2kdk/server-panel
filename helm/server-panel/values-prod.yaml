@@ -1,0 +1,77 @@
+# Production environment overrides
+
+replicaCount: 3
+
+image:
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+
+config:
+  flaskEnv: "production"
+  # Set this via --set or environment variable
+  # secretKey: "your-production-secret-key"
+
+postgresql:
+  auth:
+    # Set password via secret or --set
+    password: "CHANGE_ME"
+  primary:
+    persistence:
+      enabled: true
+      size: 50Gi
+      storageClass: "fast-ssd"
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: panel.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: server-panel-tls
+      hosts:
+        - panel.example.com
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - server-panel
+          topologyKey: kubernetes.io/hostname

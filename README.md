@@ -1,8 +1,8 @@
 # Kubernetes Game Server Panel
 
-[![CI - Lint and Test](https://github.com/YOUR_USERNAME/server-panel/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/server-panel/actions/workflows/ci.yml)
-[![Build and Push Docker Image](https://github.com/YOUR_USERNAME/server-panel/actions/workflows/build.yml/badge.svg)](https://github.com/YOUR_USERNAME/server-panel/actions/workflows/build.yml)
-[![Release - Helm Chart](https://github.com/YOUR_USERNAME/server-panel/actions/workflows/release.yml/badge.svg)](https://github.com/YOUR_USERNAME/server-panel/actions/workflows/release.yml)
+[![CI - Lint and Test](https://github.com/lucas2kdk/server-panel/actions/workflows/ci.yml/badge.svg)](https://github.com/lucas2kdk/server-panel/actions/workflows/ci.yml)
+[![Build and Push Docker Image](https://github.com/lucas2kdk/server-panel/actions/workflows/build.yml/badge.svg)](https://github.com/lucas2kdk/server-panel/actions/workflows/build.yml)
+[![Release - Helm Chart](https://github.com/lucas2kdk/server-panel/actions/workflows/release.yml/badge.svg)](https://github.com/lucas2kdk/server-panel/actions/workflows/release.yml)
 
 A Kubernetes-native game server management panel inspired by Pterodactyl, designed to provide a web-based dashboard for creating, managing, and controlling game servers (initially Minecraft) within a Kubernetes cluster.
 

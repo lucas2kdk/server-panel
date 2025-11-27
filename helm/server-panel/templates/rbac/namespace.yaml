@@ -1,0 +1,9 @@
+{{- if .Values.rbac.create -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.rbac.gameServersNamespace }}
+  labels:
+    {{- include "server-panel.labels" . | nindent 4 }}
+    app.kubernetes.io/component: game-servers
+{{- end }}

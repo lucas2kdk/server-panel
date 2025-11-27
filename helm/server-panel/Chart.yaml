@@ -1,0 +1,17 @@
+apiVersion: v2
+name: server-panel
+description: A Kubernetes-native game server management panel
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - minecraft
+  - game-server
+  - panel
+home: https://github.com/lucas2kdk/server-panel
+sources:
+  - https://github.com/lucas2kdk/server-panel
+maintainers:
+  - name: Lucas Seidelin Rosenvold Christensen
+    email: lucas@rosenvold.tech

@@ -1,0 +1,17 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "server-panel.fullname" . }}
+  labels:
+    {{- include "server-panel.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "server-panel.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: {{ .Values.monitoring.serviceMonitor.interval | default "30s" }}
+    scrapeTimeout: 10s
+{{- end }}

@@ -1,0 +1,17 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "server-panel.fullname" . }}
+  namespace: {{ .Values.rbac.gameServersNamespace }}
+  labels:
+    {{- include "server-panel.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "server-panel.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "server-panel.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}

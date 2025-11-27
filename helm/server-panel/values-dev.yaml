@@ -1,0 +1,29 @@
+# Development environment overrides
+
+image:
+  tag: "develop"
+  pullPolicy: Always
+
+replicaCount: 1
+
+config:
+  flaskEnv: "development"
+  inCluster: "false"
+
+postgresql:
+  auth:
+    password: "dev-password"
+  primary:
+    persistence:
+      enabled: false
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+ingress:
+  enabled: false

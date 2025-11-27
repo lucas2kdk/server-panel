@@ -1,0 +1,102 @@
+name: Release - Helm Chart
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release-helm-chart:
+    name: Package and Release Helm Chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Configure Git
+      run: |
+        git config user.name "${{ github.actor }}"
+        git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+    - name: Install Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: 'v3.13.0'
+
+    - name: Determine version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Update Chart version
+      run: |
+        VERSION=${{ steps.version.outputs.VERSION }}
+        sed -i "s/^version:.*/version: ${VERSION}/" helm/server-panel/Chart.yaml
+        sed -i "s/^appVersion:.*/appVersion: ${VERSION}/" helm/server-panel/Chart.yaml
+
+    - name: Lint Helm chart
+      run: |
+        helm lint helm/server-panel
+
+    - name: Package Helm chart
+      run: |
+        helm package helm/server-panel --destination .deploy
+
+    - name: Create GitHub Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: ".deploy/*.tgz"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        generateReleaseNotes: true
+        tag: v${{ steps.version.outputs.VERSION }}
+        name: Release v${{ steps.version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+
+    - name: Log in to GitHub Container Registry
+      run: |
+        echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: Push Helm chart to GHCR
+      run: |
+        helm push .deploy/*.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+
+  update-deployment:
+    name: Update Deployment Docs
+    runs-on: ubuntu-latest
+    needs: release-helm-chart
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Update deployment documentation
+      run: |
+        VERSION=${{ needs.release-helm-chart.outputs.VERSION }}
+        echo "Updated to version ${VERSION}" >> CHANGELOG.md
+
+    - name: Commit changes
+      run: |
+        git config user.name "${{ github.actor }}"
+        git config user.email "${{ github.actor }}@users.noreply.github.com"
+        git add CHANGELOG.md
+        git commit -m "docs: Update CHANGELOG for v${VERSION}" || echo "No changes to commit"
+        git push
+      continue-on-error: true
